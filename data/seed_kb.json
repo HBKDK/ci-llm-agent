@@ -1,0 +1,64 @@
+[
+  {
+    "title": "Tasking Compiler: Code generation error",
+    "summary": "Tasking 컴파일러에서 코드 생성 실패, 메모리 할당 문제 또는 옵티마이제이션 설정 오류.",
+    "fix": "컴파일러 옵션 확인(-O2, -O3), 메모리 맵 설정 검토, 코드 분할 확인, Tasking IDE에서 프로젝트 설정 재구성.",
+    "tags": ["tasking", "compiler", "code generation", "memory"]
+  },
+  {
+    "title": "NXP S32K: Compilation failed - undefined reference",
+    "summary": "NXP S32K 컴파일에서 라이브러리 링크 실패 또는 헤더 파일 경로 문제.",
+    "fix": "라이브러리 경로 설정 확인, 링커 스크립트 검토, 헤더 파일 include 경로 추가, S32 Design Studio 프로젝트 설정 재구성.",
+    "tags": ["nxp", "s32k", "compilation", "linker", "library"]
+  },
+  {
+    "title": "Polyspace: MISRA-C violation detected",
+    "summary": "Polyspace 정적 분석에서 MISRA-C 규칙 위반 감지, 코딩 표준 미준수.",
+    "fix": "MISRA-C 가이드라인 확인, 위반된 규칙에 따른 코드 수정, Polyspace 설정에서 규칙 세부 조정, 코드 리뷰 수행.",
+    "tags": ["polyspace", "misra", "static analysis", "coding standard"]
+  },
+  {
+    "title": "Simulink: Model compilation error",
+    "summary": "Simulink 모델 컴파일 실패, TargetLink 설정 오류 또는 Embedded Coder 코드 생성 문제.",
+    "fix": "TargetLink 설정 확인, 모델 설정 검토, 코드 생성 옵션 재설정, MATLAB/Simulink 버전 호환성 확인.",
+    "tags": ["simulink", "targetlink", "embedded coder", "model compilation"]
+  },
+  {
+    "title": "AUTOSAR: ECU Extract generation failed",
+    "summary": "AUTOSAR ECU Extract 생성 실패, ARXML 파일 오류 또는 Vector DaVinci 설정 문제.",
+    "fix": "ARXML 파일 검증, DaVinci 설정 확인, BSW 모듈 설정 검토, ECU Extract 템플릿 재구성.",
+    "tags": ["autosar", "ecu extract", "arxml", "vector", "davinci"]
+  },
+  {
+    "title": "CAN Communication: Message timeout error",
+    "summary": "CAN 버스 통신에서 메시지 타임아웃 발생, CANoe 설정 오류 또는 네트워크 구성 문제.",
+    "fix": "CANoe 시나리오 검토, CAN 데이터베이스(DBC) 확인, 네트워크 타이밍 설정 조정, Vector CANoe 로그 분석.",
+    "tags": ["can", "canoe", "communication", "timeout", "dbc"]
+  },
+  {
+    "title": "Build Pipeline: Toolchain path not found",
+    "summary": "CI/CD 파이프라인에서 자동차 SW 툴체인 경로를 찾을 수 없음, 환경변수 설정 문제.",
+    "fix": "환경변수 설정 확인(PATH, TOOLCHAIN_PATH), Jenkins/GitLab CI 설정 검토, 도구 설치 경로 확인, 빌드 스크립트 수정.",
+    "tags": ["ci", "pipeline", "toolchain", "environment", "path"]
+  },
+  {
+    "title": "Vector CANoe: Test case execution failed",
+    "summary": "Vector CANoe 테스트 케이스 실행 실패, CAPL 스크립트 오류 또는 시나리오 설정 문제.",
+    "fix": "CAPL 스크립트 문법 검토, 테스트 시나리오 설정 확인, CANoe 로그 분석, 테스트 환경 구성 검토.",
+    "tags": ["canoe", "test", "capl", "scenario", "execution"]
+  },
+  {
+    "title": "Polyspace Code Prover: Proof timeout",
+    "summary": "Polyspace Code Prover에서 증명 시간 초과, 복잡한 코드 분석 불가.",
+    "fix": "분석 범위 축소, 복잡한 함수 분할, 증명 옵션 조정, 증명 시간 제한 증가 설정.",
+    "tags": ["polyspace", "code prover", "proof", "timeout", "verification"]
+  },
+  {
+    "title": "AUTOSAR BSW: RTE generation error",
+    "summary": "AUTOSAR BSW에서 RTE(Runtime Environment) 생성 오류, 인터페이스 정의 문제.",
+    "fix": "RTE 설정 확인, 인터페이스 정의 검토, ARXML 파일 검증, BSW 모듈 설정 재구성.",
+    "tags": ["autosar", "bsw", "rte", "interface", "arxml"]
+  }
+]
+
+

@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ci-error-agent
+  labels:
+    app: ci-error-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ci-error-agent
+  template:
+    metadata:
+      labels:
+        app: ci-error-agent
+    spec:
+      containers:
+      - name: ci-error-agent
+        image: ci-error-agent:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: DB_HOST
+          value: "postgres-service"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "ci_agent"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        # LLM 설정
+        - name: LLM_PROVIDER
+          value: "private"  # openai 또는 private
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: openai-api-key
+              optional: true
+        - name: PRIVATE_LLM_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: private-llm-base-url
+              optional: true
+        - name: PRIVATE_LLM_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: private-llm-model
+              optional: true
+        - name: PRIVATE_LLM_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: private-llm-api-key
+              optional: true
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: jwt-secret-key
+        - name: BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: base-url
+        - name: SEARCH_ENGINE
+          value: "auto"
+        volumeMounts:
+        - name: kb-storage
+          mountPath: /app/data
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: kb-storage
+        persistentVolumeClaim:
+          claimName: ci-agent-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ci-error-agent-service
+  labels:
+    app: ci-error-agent
+spec:
+  type: NodePort  # IP 기반 접속을 위해 NodePort 사용 (또는 LoadBalancer)
+  ports:
+  - port: 8000
+    targetPort: 8000
+    nodePort: 30800  # 외부에서 접속할 포트 (30000-32767 범위)
+    protocol: TCP
+    name: http
+  selector:
+    app: ci-error-agent
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ci-agent-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard

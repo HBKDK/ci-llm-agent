@@ -1,0 +1,21 @@
+fastapi==0.115.0
+uvicorn==0.30.6
+python-dotenv==1.0.1
+httpx==0.27.0
+websockets==12.0
+beautifulsoup4==4.12.3
+# scikit-learn==1.5.2  # Windows에서 C++ 컴파일러 필요 - 제거됨
+# numpy==2.1.1  # scikit-learn 의존성 - 제거됨
+# scipy==1.13.1  # scikit-learn 의존성 - 제거됨
+sqlalchemy==2.0.36
+# psycopg2-binary==2.9.9  # PostgreSQL 의존성 - SQLite만 사용
+pyjwt==2.9.0
+tenacity==9.0.0
+langgraph==0.2.45
+langchain-openai==0.2.8
+# openai와 langchain-core는 langchain-openai가 자동으로 호환 버전 선택
+
+# Testing
+pytest==8.3.3
+
+
