@@ -8,7 +8,7 @@ beautifulsoup4==4.12.3
 # numpy==2.1.1  # scikit-learn 의존성 - 제거됨
 # scipy==1.13.1  # scikit-learn 의존성 - 제거됨
 sqlalchemy==2.0.36
-# psycopg2-binary==2.9.9  # PostgreSQL 의존성 - SQLite만 사용
+psycopg2-binary==2.9.11  # PostgreSQL 의존성
 pyjwt==2.9.0
 tenacity==9.0.0
 langgraph==0.2.45
