@@ -1,0 +1,2 @@
+rust-installer/*.tar.gz filter=lfs diff=lfs merge=lfs -text
+rust-installer/rustup-init filter=lfs diff=lfs merge=lfs -text

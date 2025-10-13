@@ -66,3 +66,5 @@ k8s/secrets-production.yaml
 # 로컬 설정
 .env
 .env.local
+
+# Rust 바이너리는 형상에 포함 (rust-installer/ 제외하지 않음)

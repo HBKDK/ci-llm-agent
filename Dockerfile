@@ -2,14 +2,19 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# 시스템 의존성 및 Rust 설치
+# 시스템 의존성 설치 (curl 제거 - 미리 다운받은 바이너리 사용)
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
-    curl \
-    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
-    && . $HOME/.cargo/env \
     && rm -rf /var/lib/apt/lists/*
+
+# 미리 다운받은 Rust 설치 바이너리 복사
+COPY rust-installer/rustup-init /tmp/rustup-init
+RUN chmod +x /tmp/rustup-init
+
+# Rust 설치 (네트워크 없이 로컬 바이너리 사용)
+RUN /tmp/rustup-init -y --no-modify-path \
+    && rm /tmp/rustup-init
 
 # Rust PATH 설정
 ENV PATH="/root/.cargo/bin:${PATH}"
