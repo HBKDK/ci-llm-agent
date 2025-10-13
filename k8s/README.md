@@ -40,17 +40,7 @@ kubectl apply -f k8s/deployment.yaml
 kubectl get pods -l app=ci-error-agent
 ```
 
-### 4️⃣ Bamboo Watcher 배포
-
-```bash
-# Bamboo 로그 경로 확인 및 수정
-# k8s/bamboo-watcher-deployment.yaml에서:
-# - hostPath.path를 실제 Bamboo 로그 경로로 변경
-
-kubectl apply -f k8s/bamboo-watcher-deployment.yaml
-```
-
-### 5️⃣ 배포 확인
+### 4️⃣ 배포 확인
 
 ```bash
 # 모든 Pod 확인
@@ -58,7 +48,6 @@ kubectl get pods
 
 # 로그 확인
 kubectl logs -f deployment/ci-error-agent
-kubectl logs -f deployment/bamboo-watcher
 
 # 서비스 확인
 kubectl get svc
@@ -92,15 +81,6 @@ data:
   admin-email: "admin@your-company.com"
 ```
 
-### k8s/bamboo-watcher-deployment.yaml
-```yaml
-# Bamboo 로그 경로 수정
-volumes:
-- name: bamboo-logs
-  hostPath:
-    path: /var/bamboo/logs  # 실제 Bamboo 로그 경로로 변경
-    type: Directory
-```
 
 ## 🌐 외부 접근 설정 (선택사항)
 
