@@ -8,7 +8,7 @@ httpx==0.27.0
 
 # Database
 sqlalchemy==2.0.36
-# psycopg2-binary==2.9.9  # PostgreSQL 의존성 - K8s에서 사용시 주석 해제
+psycopg2-binary==2.9.11  # PostgreSQL 의존성
 
 # Authentication
 pyjwt==2.9.0

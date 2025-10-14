@@ -341,7 +341,7 @@ docker build --no-cache .
 - npm cache clean
 - Docker system prune
 
-**참고**: 더 정확한 분석을 위해 OPENAI_API_KEY를 설정하세요.
+**참고**: 더 정확한 분석을 위해 LLM 설정을 확인하세요.
 """
     
     def _calculate_confidence(self, state: CIWorkflowState) -> float:
