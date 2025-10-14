@@ -1,0 +1,13 @@
+{
+  "ci_log": "tasking compiler error: undefined reference to 'main'\nlinking failed with exit code 1\nmake: *** [build] Error 1",
+  "symptoms": [
+    "tasking compiler",
+    "undefined reference",
+    "main function",
+    "linking failed",
+    "exit code 1"
+  ],
+  "error_type": "tasking",
+  "context": "automotive sw build process",
+  "repository": "ecu-firmware"
+}

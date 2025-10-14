@@ -1,16 +1,14 @@
 """
-LangGraph 기반 CI 오류 분석 워크플로우
+LangGraph 기반 CI 오류 분석 워크플로우 (KB 전용)
+
+n8n LLM 통합으로 인해 LLM 노드 제거, KB 검색과 증상 추출만 수행
 """
 import os
-from typing import Dict, List, TypedDict, Annotated, Any
+from typing import Dict, List, TypedDict, Any
 from langgraph.graph import StateGraph, END
-from langgraph.prebuilt import ToolNode
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
-# DuckDuckGo 도구 제거 - 자동차 SW 특화 검색 시스템 사용
 
 from app.kb.db import ensure_initialized, search_kb
-from app.utils.text import extract_symptoms, truncate_tokens
+from app.utils.text import extract_symptoms
 
 
 class CIWorkflowState(TypedDict, total=False):
@@ -36,48 +34,10 @@ class CIWorkflowState(TypedDict, total=False):
 
 
 class CIErrorAnalyzer:
-    """CI 오류 분석 워크플로우"""
+    """CI 오류 분석 워크플로우 (KB 전용)"""
     
     def __init__(self):
-        self.llm = self._get_llm()
-        # DuckDuckGo 도구 제거 - 새로운 자동차 SW 특화 검색 시스템 사용
         ensure_initialized()
-    
-    def _get_llm(self):
-        """LLM 초기화"""
-        llm_provider = os.getenv("LLM_PROVIDER", "").lower()
-        
-        # LLM_PROVIDER가 비어있으면 LLM 비활성화
-        if not llm_provider:
-            return None
-        
-        if llm_provider == "private":
-            # Private LLM
-            base_url = os.getenv("PRIVATE_LLM_BASE_URL")
-            if not base_url:
-                print("⚠️ PRIVATE_LLM_BASE_URL 미설정, LLM 비활성화")
-                return None
-            
-            return ChatOpenAI(
-                model=os.getenv("PRIVATE_LLM_MODEL", "llama-3-70b"),
-                temperature=0.2,
-                openai_api_key=os.getenv("PRIVATE_LLM_API_KEY", "not-needed"),
-                openai_api_base=base_url
-            )
-        else:
-            # OpenAI
-            api_key = os.getenv("OPENAI_API_KEY")
-            if not api_key:
-                print("⚠️ OPENAI_API_KEY 미설정, LLM 비활성화")
-                return None
-            
-            return ChatOpenAI(
-                model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-                temperature=0.2,
-                api_key=api_key
-            )
-        
-        return None
     
     def extract_symptoms_node(self, state: CIWorkflowState) -> Dict:
         """증상 추출 노드"""
@@ -211,34 +171,43 @@ class CIErrorAnalyzer:
     # 웹 검색 메서드들 (현재 비활성화 - KB만 사용)
     # TODO: 나중에 웹 검색 기능 추가 시 활성화
     
-    def analyze_with_llm_node(self, state: CIWorkflowState) -> Dict:
-        """LLM 분석 노드"""
-        if not self.llm:
-            # LLM이 없으면 간단한 분석 제공
-            return {
-                "analysis": self._fallback_analysis(state),
-                "confidence": 0.7
-            }
-        
-        prompt = self._build_analysis_prompt(state)
-        
-        try:
-            messages = [
-                SystemMessage(content="당신은 CI/CD 오류 분석 전문가입니다. 한국어로 상세한 분석과 해결책을 제시하세요."),
-                HumanMessage(content=prompt)
-            ]
+    def generate_kb_analysis_node(self, state: CIWorkflowState) -> Dict:
+        """KB 결과를 기반으로 분석 생성 노드"""
+        # KB 결과가 있으면 KB 기반 분석 생성
+        if state["kb_hits"] and state["kb_confidence"] > 0.5:
+            best_hit = state["kb_hits"][0]
             
-            response = self.llm.invoke(messages)
+            analysis = f"""KB에서 유사한 사례를 찾았습니다:
+
+**문제 유형**: {best_hit['title']}
+**해결 방법**: {best_hit['fix']}
+
+추가 참고사항:
+{best_hit['summary']}
+
+이 해결책을 적용해보시고, 문제가 지속되면 추가 로그를 제공해주세요."""
+
             return {
-                "analysis": response.content,
-                "confidence": self._calculate_confidence(state)
+                "analysis": analysis,
+                "confidence": state["kb_confidence"],
+                "security_status": "kb_analyzed"
             }
-            
-        except Exception as e:
-            print(f"LLM 분석 오류: {e}")
+        else:
+            # KB에서 답을 찾지 못한 경우
+            analysis = f"""KB에서 해당 오류에 대한 해결책을 찾지 못했습니다.
+
+**추출된 증상**:
+{chr(10).join(f"- {symptom}" for symptom in state['symptoms'][:5])}
+
+**오류 유형**: {state['error_type']}
+
+이 오류는 새로운 사례이거나 특수한 상황일 수 있습니다. 
+개발팀에 문의하거나 추가 컨텍스트를 제공해주세요."""
+
             return {
-                "analysis": self._fallback_analysis(state),
-                "confidence": 0.7
+                "analysis": analysis,
+                "confidence": 0.2,
+                "security_status": "kb_miss"
             }
     
     def _classify_error_type(self, symptoms: List[str]) -> str:
@@ -396,19 +365,19 @@ docker build --no-cache .
         return END
     
     def create_workflow(self) -> StateGraph:
-        """LangGraph 워크플로우 생성"""
+        """LangGraph 워크플로우 생성 (KB 전용)"""
         workflow = StateGraph(CIWorkflowState)
         
-        # 노드 추가 (웹 검색 비활성화)
+        # 노드 추가 (KB 전용)
         workflow.add_node("extract_symptoms", self.extract_symptoms_node)
         workflow.add_node("search_kb", self.search_knowledge_base_node)
-        workflow.add_node("analyze_llm", self.analyze_with_llm_node)
+        workflow.add_node("generate_analysis", self.generate_kb_analysis_node)
         
-        # 엣지 추가 (단순화: 증상 추출 → KB 검색 → LLM 분석)
+        # 엣지 추가 (단순화: 증상 추출 → KB 검색 → KB 분석 생성)
         workflow.set_entry_point("extract_symptoms")
         workflow.add_edge("extract_symptoms", "search_kb")
-        workflow.add_edge("search_kb", "analyze_llm")
-        workflow.add_edge("analyze_llm", END)
+        workflow.add_edge("search_kb", "generate_analysis")
+        workflow.add_edge("generate_analysis", END)
         
         return workflow.compile()
 

@@ -77,6 +77,19 @@ spec:
               key: base-url
         - name: SEARCH_ENGINE
           value: "auto"
+        # n8n Integration
+        - name: N8N_WEBHOOK_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: n8n-webhook-url
+              optional: true
+        - name: N8N_TIMEOUT_SECONDS
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: n8n-timeout
+              optional: true
         volumeMounts:
         - name: kb-storage
           mountPath: /app/data

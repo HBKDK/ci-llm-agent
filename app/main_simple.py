@@ -13,7 +13,10 @@ import os
 from app.db.connection import get_db, init_db
 from app.db.models import AnalysisHistory, PendingApproval, KnowledgeBase
 from app.auth.jwt_handler import create_approval_token, verify_approval_token
-from app.graph.workflow import run_analysis
+from app.graph.workflow import CIErrorAnalyzer
+from app.services.n8n_client import n8n_client
+from app.utils.text import extract_symptoms
+from app.kb.db import search_kb
 
 app = FastAPI(
     title="CI Error Analysis Agent",
@@ -74,21 +77,94 @@ async def analyze_ci_error(
     db: Session = Depends(get_db)
 ):
     """
-    CI 오류 분석
+    CI 오류 분석 (KB 우선, 필요시 n8n LLM 호출)
     
     CI 시스템에서 호출:
-    1. 분석 결과 반환
-    2. approval_token과 approval_url 포함
-    3. CI 시스템이 이메일 전송
+    1. 증상 추출 및 KB 검색
+    2. KB 신뢰도 < 0.8이면 n8n LLM 분석 호출
+    3. 분석 결과 반환 (approval_token 포함)
     """
-    # 1. LangGraph 워크플로우로 분석
-    result = run_analysis(
-        ci_log=request.ci_log,
-        context=request.context,
-        repository=request.repository
-    )
+    # 1. 증상 추출
+    analyzer = CIErrorAnalyzer()
+    symptoms = extract_symptoms(request.ci_log)
+    error_type = analyzer._classify_error_type(symptoms)
     
-    # 2. 분석 이력 DB 저장
+    # 2. KB 검색
+    query = "\n".join(symptoms)
+    kb_hits = search_kb(query=query, top_k=5)
+    kb_confidence = analyzer._calculate_kb_confidence(kb_hits)
+    
+    # 3. KB 결과 또는 n8n LLM 분석
+    if kb_confidence >= 0.8:
+        # KB에서 충분한 답을 찾음
+        best_hit = kb_hits[0]
+        analysis = f"""KB에서 유사한 사례를 찾았습니다:
+
+**문제 유형**: {best_hit['title']}
+**해결 방법**: {best_hit['fix']}
+
+추가 참고사항:
+{best_hit['summary']}
+
+이 해결책을 적용해보시고, 문제가 지속되면 추가 로그를 제공해주세요."""
+        
+        result = {
+            "symptoms": symptoms,
+            "kb_hits": kb_hits,
+            "web_hits": [],
+            "security_status": "kb_analyzed",
+            "kb_confidence": kb_confidence,
+            "analysis": analysis,
+            "confidence": kb_confidence,
+            "error_type": error_type
+        }
+    else:
+        # KB에서 답을 찾지 못함 - n8n LLM 분석 호출
+        try:
+            n8n_result = await n8n_client.call_llm_analysis(
+                ci_log=request.ci_log,
+                symptoms=symptoms,
+                error_type=error_type,
+                context=request.context,
+                repository=request.repository
+            )
+            
+            result = {
+                "symptoms": symptoms,
+                "kb_hits": kb_hits,
+                "web_hits": [],
+                "security_status": "llm_analyzed",
+                "kb_confidence": kb_confidence,
+                "analysis": n8n_result["analysis"],
+                "confidence": n8n_result["confidence"],
+                "error_type": error_type
+            }
+            
+        except HTTPException as e:
+            # n8n 호출 실패 - fallback 분석
+            analysis = f"""KB에서 해당 오류에 대한 해결책을 찾지 못했고, LLM 분석도 실패했습니다.
+
+**추출된 증상**:
+{chr(10).join(f"- {symptom}" for symptom in symptoms[:5])}
+
+**오류 유형**: {error_type}
+
+**오류**: {e.detail}
+
+개발팀에 문의하거나 추가 컨텍스트를 제공해주세요."""
+            
+            result = {
+                "symptoms": symptoms,
+                "kb_hits": kb_hits,
+                "web_hits": [],
+                "security_status": "analysis_failed",
+                "kb_confidence": kb_confidence,
+                "analysis": analysis,
+                "confidence": 0.1,
+                "error_type": error_type
+            }
+    
+    # 4. 분석 이력 DB 저장
     analysis_history = AnalysisHistory(
         ci_log=request.ci_log,
         context=request.context,
@@ -106,7 +182,7 @@ async def analyze_ci_error(
     db.commit()
     db.refresh(analysis_history)
     
-    # 3. 승인 토큰 생성 (신뢰도 0.6 이상일 때만)
+    # 5. 승인 토큰 생성 (신뢰도 0.6 이상일 때만)
     approval_token = None
     approval_url = None
     modify_token = None
@@ -150,7 +226,7 @@ async def analyze_ci_error(
         modify_url = f"{base_url}/modify/{modify_token}"
         recommend_save = True
     
-    # 4. 응답 반환
+    # 6. 응답 반환
     return AnalyzeResponse(
         analysis_id=analysis_history.id,
         error_type=result["error_type"],

@@ -45,6 +45,8 @@ analyze_*.json
 server_error*.txt
 import_error.txt
 api_error*.txt
+n8n_test_results.json
+modify_page_url.txt
 
 # 데이터베이스
 *.db
@@ -67,4 +69,11 @@ k8s/secrets-production.yaml
 .env
 .env.local
 
-# Rust 바이너리는 형상에 포함 (rust-installer/ 제외하지 않음)
+# Rust 바이너리 불필요 (n8n 통합으로 LLM 직접 접근 제거)
+
+# 테스트 및 임시 스크립트
+test_*.py
+download_*.sh
+validate_*.sh
+build_*.sh
+save_*.sh
