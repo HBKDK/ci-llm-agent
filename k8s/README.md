@@ -25,7 +25,20 @@ kubectl apply -f k8s/postgres.yaml
 kubectl wait --for=condition=ready pod -l app=postgres --timeout=120s
 ```
 
-### 3️⃣ CI Error Agent 배포
+### 3️⃣ N8N 워크플로우 설정
+
+```bash
+# N8N 서버에 워크플로우 Import
+# 1. n8n UI 접속 (http://your-n8n-server:5678)
+# 2. n8n-workflows/ci-llm-analyzer.json 파일 Import
+# 3. 환경변수 설정:
+#    - PRIVATE_LLM_URL=http://your-llm-server:8000/v1/chat/completions
+#    - PRIVATE_LLM_MODEL=llama-3-70b
+#    - PRIVATE_LLM_API_KEY=your-api-key
+# 4. 워크플로우 활성화
+```
+
+### 4️⃣ CI Error Agent 배포
 
 ```bash
 # Docker 이미지 빌드 및 푸시
@@ -40,7 +53,7 @@ kubectl apply -f k8s/deployment.yaml
 kubectl get pods -l app=ci-error-agent
 ```
 
-### 4️⃣ 배포 확인
+### 5️⃣ 배포 확인
 
 ```bash
 # 모든 Pod 확인
@@ -79,6 +92,7 @@ data:
   base-url: "https://ci-agent.your-company.com"
   developer-email: "dev@your-company.com"
   admin-email: "admin@your-company.com"
+  n8n-webhook-url: "http://your-n8n-server:5678/webhook/llm-analyze"
 ```
 
 

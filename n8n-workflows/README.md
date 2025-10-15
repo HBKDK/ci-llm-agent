@@ -20,6 +20,7 @@ n8n에서 다음 환경변수를 설정하세요:
 ```bash
 PRIVATE_LLM_URL=http://your-llm-server:8000/v1/chat/completions
 PRIVATE_LLM_MODEL=llama-3-70b
+PRIVATE_LLM_API_KEY=your-api-key
 ```
 
 ## API 계약

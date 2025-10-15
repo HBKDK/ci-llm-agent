@@ -51,7 +51,7 @@ tests/
 ├── conftest.py              # Pytest 설정 및 fixtures
 ├── test_symptoms.py         # 증상 추출 테스트 (5개)
 ├── test_kb.py              # KB 관리 테스트 (5개)
-├── test_workflow.py        # LangGraph 워크플로우 (6개)
+├── test_workflow.py        # LangGraph 워크플로우 (7개)
 ├── test_api_endpoints.py   # FastAPI 엔드포인트 (5개)
 ├── test_jwt.py             # JWT 토큰 (4개)
 └── README.md               # 이 파일
@@ -78,6 +78,7 @@ tests/
 - ✅ 보안 검증
 - ✅ 자동차 SW 관련성
 - ✅ 전체 분석 워크플로우
+- ✅ N8N 워크플로우 호출 테스트
 
 ### test_api_endpoints.py
 - ✅ 루트 엔드포인트
@@ -96,15 +97,15 @@ tests/
 
 ```
 ======================== test session starts ========================
-collected 25 items
+collected 26 items
 
-tests/test_symptoms.py .....                                  [ 20%]
-tests/test_kb.py .....                                        [ 40%]
-tests/test_workflow.py ......                                 [ 64%]
+tests/test_symptoms.py .....                                  [ 19%]
+tests/test_kb.py .....                                        [ 38%]
+tests/test_workflow.py .......                                [ 65%]
 tests/test_api_endpoints.py .....                             [ 84%]
 tests/test_jwt.py ....                                        [100%]
 
-======================== 25 passed in 5.23s ========================
+======================== 26 passed in 5.23s ========================
 ```
 
 ## 🚀 실행 방법
