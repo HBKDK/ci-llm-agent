@@ -1,0 +1,35 @@
+# Local LLM Server 설정 파일
+
+# OpenAI 설정
+openai:
+  # API 키 (환경변수 OPENAI_API_KEY로도 설정 가능)
+  # api_key: "your-openai-api-key-here"
+  
+  # 사용할 모델 (gpt-4, gpt-3.5-turbo, gpt-4-turbo 등)
+  model: "gpt-3.5-turbo"
+  
+  # 생성 온도 (0.0 ~ 1.0, 낮을수록 일관성 높음)
+  temperature: 0.2
+  
+  # 최대 토큰 수
+  max_tokens: 1000
+
+# 서버 설정
+server:
+  # 서버 포트 (기본값: 5678, n8n과 동일)
+  port: 5678
+  
+  # 서버 호스트 (0.0.0.0: 모든 인터페이스, 127.0.0.1: 로컬만)
+  host: "0.0.0.0"
+  
+  # 요청 타임아웃 (초)
+  timeout: 30
+
+# 로깅 설정
+logging:
+  # 로그 레벨 (DEBUG, INFO, WARNING, ERROR)
+  level: "INFO"
+  
+  # 로그 파일 (선택사항)
+  # file: "local_llm_server.log"
+
