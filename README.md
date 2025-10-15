@@ -11,7 +11,7 @@ Bamboo CI에서 발생하는 자동차 SW 빌드 오류를 자동으로 분석�
 - 🚗 **자동차 SW 특화** - Tasking, NXP, Polyspace, Simulink, AUTOSAR, CAN
 - 📚 **Knowledge Base** - 학습 및 검색 시스템
 - 🔒 **보안 우선** - 내부 데이터만 사용
-- 🔧 **Private LLM** - 사내 LLM 지원
+- 🔧 **LLM 지원** - OpenAI, Azure OpenAI, Private LLM 지원
 - ✅ **수정 후 승인** - 관리자가 답변 수정 후 KB 저장
 
 ## ⚡ 빠른 시작

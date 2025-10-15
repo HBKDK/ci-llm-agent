@@ -1,0 +1,93 @@
+{
+  "name": "Test Azure OpenAI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "test-agent",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-test",
+      "name": "Test Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "test-agent"
+    },
+    {
+      "parameters": {
+        "model": "={{ $env.AZURE_OPENAI_DEPLOYMENT_NAME }}",
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 1000
+        },
+        "systemMessage": "당신은 자동차 소프트웨어 CI/CD 오류 분석 전문가입니다. 간단하고 명확하게 답변해주세요.",
+        "prompt": "다음 오류를 분석해주세요:\n\n{{ $json.message || '테스트 메시지' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api-key",
+              "value": "={{ $env.AZURE_OPENAI_API_KEY }}"
+            }
+          ]
+        },
+        "baseURL": "={{ $env.AZURE_OPENAI_ENDPOINT }}",
+        "apiVersion": "={{ $env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview' }}"
+      },
+      "id": "agent-test",
+      "name": "Azure OpenAI Agent",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-test",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Test Webhook": {
+      "main": [
+        [
+          {
+            "node": "Azure OpenAI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "id": "test-agent",
+  "meta": {
+    "instanceId": "test-instance"
+  },
+  "tags": []
+}

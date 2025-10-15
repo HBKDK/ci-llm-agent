@@ -2,16 +2,24 @@
 
 ## 개요
 
-K8s CI Agent에서 n8n을 통해 Private LLM 분석을 수행하는 워크플로우 설정 방법입니다.
+K8s CI Agent에서 n8n을 통해 Azure OpenAI Agent를 사용하여 분석을 수행하는 워크플로우 설정 방법입니다.
+
+### Agent 사용의 장점
+
+- **🧠 고급 AI 기능**: 단순한 채팅보다 더 지능적인 분석
+- **📝 구조화된 응답**: 일관된 형식의 분석 결과 제공
+- **🔧 내장 최적화**: n8n에서 최적화된 OpenAI 통합
+- **⚡ 간편한 설정**: 복잡한 HTTP 요청 설정 불필요
+- **🛡️ 에러 처리**: 자동 재시도 및 오류 처리
 
 ## 아키텍처
 
 ```
 CI (Bamboo) → K8s App → KB Search
                   ↓ (if KB miss)
-                n8n Webhook → Private LLM
+                n8n Webhook → Azure OpenAI Agent
                   ↓
-            K8s App ← LLM Result
+            K8s App ← Agent Result
                   ↓
                CI Response
 ```
@@ -47,53 +55,66 @@ return {
 };
 ```
 
-### 3. Private LLM 호출 노드
+### 3. Azure OpenAI Agent 노드
 
-**HTTP Request** 노드를 추가하여 Private LLM 호출:
+**OpenAI** 노드를 추가하여 Azure OpenAI Agent 사용:
 
 #### 설정:
-- **Method**: POST
-- **URL**: `{{ $env.PRIVATE_LLM_URL }}`
-- **Headers**:
+- **Model**: `{{ $env.AZURE_OPENAI_DEPLOYMENT_NAME }}`
+- **Base URL**: `{{ $env.AZURE_OPENAI_ENDPOINT }}`
+- **API Version**: `{{ $env.AZURE_OPENAI_API_VERSION }}`
+- **Authentication**: HTTP Header Auth
+  - **Header Name**: `api-key`
+  - **Header Value**: `{{ $env.AZURE_OPENAI_API_KEY }}`
+- **System Message**:
   ```
-  Content-Type: application/json
-  Authorization: Bearer {{ $env.PRIVATE_LLM_API_KEY }}
+  당신은 자동차 소프트웨어 CI/CD 오류 분석 전문가입니다. Tasking, NXP, Polyspace, Simulink, AUTOSAR, CAN 등의 도구에서 발생하는 오류를 분석하고 해결책을 제시하세요. 한국어로 답변하세요.
+
+  다음 형식으로 분석 결과를 제공해주세요:
+  1. 오류 원인 분석
+  2. 구체적인 해결 방법 (단계별)
+  3. 예방 방법
+  4. 관련 도구 설정 확인사항
   ```
-- **Body** (JSON):
-```json
-{
-  "model": "{{ $env.PRIVATE_LLM_MODEL }}",
-  "messages": [
-    {
-      "role": "system",
-      "content": "당신은 자동차 소프트웨어 CI/CD 오류 분석 전문가입니다. Tasking, NXP, Polyspace, Simulink, AUTOSAR, CAN 등의 도구에서 발생하는 오류를 분석하고 해결책을 제시하세요. 한국어로 답변하세요."
-    },
-    {
-      "role": "user",
-      "content": "CI 로그:\n{{ $json.ci_log }}\n\n증상:\n{{ $json.symptoms.join('\\n') }}\n\n오류 타입: {{ $json.error_type }}\n\n컨텍스트: {{ $json.context }}"
-    }
-  ],
-  "temperature": 0.2,
-  "max_tokens": 1000
-}
-```
+- **Prompt**:
+  ```
+  CI 로그:
+  {{ $json.ci_log }}
+
+  증상:
+  {{ $json.symptoms.join('\n') }}
+
+  오류 타입: {{ $json.error_type }}
+
+  컨텍스트: {{ $json.context }}
+
+  저장소: {{ $json.repository }}
+  ```
+- **Options**:
+  - **Temperature**: 0.2
+  - **Max Tokens**: 1000
 
 ### 4. 응답 처리 노드
 
-**Function** 노드를 추가하여 LLM 응답을 K8s App 형식으로 변환:
+**Function** 노드를 추가하여 Agent 응답을 K8s App 형식으로 변환:
 
 ```javascript
-// LLM 응답 처리
-const llmResponse = $input.first().json;
-const analysis = llmResponse.choices[0].message.content;
+// Agent 응답 처리
+const agentResponse = $input.first().json;
+// Agent 노드는 직접 텍스트 응답을 반환
+const analysis = agentResponse.text || agentResponse.message || agentResponse.content || "분석 결과를 가져올 수 없습니다.";
+const inputData = $('전처리').first().json;
 
-// 신뢰도 계산 (간단한 휴리스틱)
-const confidence = analysis.length > 100 ? 0.8 : 0.6;
+// 고급 신뢰도 계산 (기존 로직 유지)
+// ... (신뢰도 계산 로직)
 
 return {
   json: {
     analysis: analysis,
-    confidence: confidence
+    confidence: confidence,
+    confidence_level: confidenceLevel,
+    analysis_length: analysis.length,
+    word_count: analysis.split(/\s+/).length
   }
 };
 ```
@@ -117,9 +138,10 @@ n8n 워크플로우에서 사용할 환경변수:
 
 ```bash
 # .env 파일 또는 n8n 환경변수 설정
-PRIVATE_LLM_URL=http://your-llm-server:8000/v1/chat/completions
-PRIVATE_LLM_API_KEY=your-api-key
-PRIVATE_LLM_MODEL=llama-3-70b
+AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com
+AZURE_OPENAI_DEPLOYMENT_NAME=your-deployment-name
+AZURE_OPENAI_API_KEY=your-azure-openai-api-key
+AZURE_OPENAI_API_VERSION=2024-02-15-preview
 ```
 
 ## API 계약
@@ -218,18 +240,24 @@ kubectl logs -f deployment/ci-error-agent
 ### 자주 발생하는 문제
 
 1. **연결 실패**
-   - Private LLM 서버 상태 확인
+   - Azure OpenAI 서비스 상태 확인
    - 네트워크 연결 확인
    - API 키 유효성 확인
+   - 엔드포인트 URL 정확성 확인
 
 2. **타임아웃**
-   - LLM 서버 성능 확인
+   - Azure OpenAI 서비스 성능 확인
    - 요청 복잡도 줄이기
    - 타임아웃 시간 조정
 
 3. **응답 형식 오류**
-   - LLM 응답 JSON 형식 확인
+   - Azure OpenAI 응답 JSON 형식 확인
    - n8n Function 노드 로직 점검
+
+4. **인증 오류**
+   - Azure OpenAI API 키 확인
+   - 배포 이름 정확성 확인
+   - API 버전 호환성 확인
 
 ### 로그 확인 명령어
 
@@ -240,6 +268,7 @@ docker logs n8n-container
 # K8s App 로그
 kubectl logs deployment/ci-error-agent
 
-# Private LLM 로그
-docker logs llm-server-container
+# Azure OpenAI 로그 (Azure Portal에서 확인)
+# 또는 Azure CLI로 확인
+az monitor activity-log list --resource-group your-resource-group
 ```
