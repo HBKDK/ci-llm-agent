@@ -51,7 +51,9 @@ POST /analyze (REST API)
 │     ↓                       │
 │  2. KB 검색                  │
 │     ↓                       │
-│  3. LLM 분석                 │
+│  3. N8N 워크플로우 호출      │
+│     ↓                       │
+│  4. Private LLM 분석         │
 └─────────────────────────────┘
     ↓
 Response (분석 + 승인 토큰)
@@ -65,7 +67,7 @@ CI 시스템이 이메일 전송
 KB에 저장 → 다음 분석부터 활용
 ```
 
-상세한 다이어그램은 **`WORKFLOW_DIAGRAM.md`** 참고
+상세한 설정은 **`docs/N8N_WORKFLOW_SETUP.md`** 참고
 
 ## ☸️ Kubernetes 배포
 
@@ -74,9 +76,9 @@ KB에 저장 → 다음 분석부터 활용
 # k8s/secrets.yaml
 # - PostgreSQL password
 # - JWT secret (64자+)
-# - Private LLM API key
+# - N8N webhook URL
 # - base-url: http://<node-ip>:30800
-# - private-llm-base-url: http://<llm-server>:8000/v1
+# - n8n-webhook-url: http://<n8n-server>:5678/webhook/llm-analyze
 ```
 
 ### 2. 배포
@@ -111,17 +113,28 @@ http://<node-ip>:30800/docs
 - **PUT /kb/{id}** - KB 수정
 - **DELETE /kb/{id}** - KB 삭제
 
-## 🔧 Private LLM 설정
+## 🔧 N8N 워크플로우 설정
 
-```python
-# start_server.py 또는 환경변수
-os.environ["LLM_PROVIDER"] = "private"
-os.environ["PRIVATE_LLM_BASE_URL"] = "http://your-llm:8000/v1"
-os.environ["PRIVATE_LLM_MODEL"] = "llama-3-70b"
-os.environ["PRIVATE_LLM_API_KEY"] = "your-api-key"
+### 1. N8N 워크플로우 Import
+```bash
+# n8n UI에서 워크플로우 Import
+# 파일: n8n-workflows/ci-llm-analyzer.json
 ```
 
-자세한 설정은 **`PRIVATE_LLM_SETUP.md`** 참고
+### 2. 환경변수 설정
+```bash
+# N8N 환경변수
+PRIVATE_LLM_URL=http://your-llm-server:8000/v1/chat/completions
+PRIVATE_LLM_MODEL=llama-3-70b
+PRIVATE_LLM_API_KEY=your-api-key
+```
+
+### 3. 웹훅 URL 확인
+```
+http://your-n8n-server:5678/webhook/llm-analyze
+```
+
+자세한 설정은 **`docs/N8N_WORKFLOW_SETUP.md`** 참고
 
 ## 🧪 테스트
 
@@ -138,19 +151,18 @@ python -m pytest tests/test_workflow.py -v
 
 ## 📖 문서
 
-- **DEPLOYMENT.md** - K8s 배포 가이드
-- **WORKFLOW_DIAGRAM.md** - 워크플로우 다이어그램
-- **PRIVATE_LLM_SETUP.md** - Private LLM 설정
-- **SIMPLIFIED_ARCHITECTURE.md** - 시스템 아키텍처
-- **ci_system_example.py** - CI 연동 예시 코드
+- **docs/N8N_WORKFLOW_SETUP.md** - N8N 워크플로우 설정 가이드
+- **n8n-workflows/README.md** - N8N 워크플로우 파일 설명
+- **k8s/README.md** - K8s 배포 가이드
 - **tests/README.md** - 테스트 가이드
 
 ## 🛠️ 기술 스택
 
 - **Backend**: FastAPI, Uvicorn
-- **AI**: LangGraph, LangChain, OpenAI
+- **AI**: LangGraph, LangChain, N8N Workflows
 - **DB**: SQLAlchemy, SQLite/PostgreSQL
 - **Auth**: JWT (PyJWT)
+- **Workflow**: N8N (Private LLM 연동)
 - **Container**: Docker, Kubernetes
 - **Test**: Pytest
 
@@ -173,16 +185,18 @@ ci_agent/
 │   ├── auth/                # JWT 인증
 │   ├── graph/               # LangGraph 워크플로우
 │   ├── kb/                  # Knowledge Base
-│   ├── llm/                 # LLM Provider
+│   ├── services/            # N8N 클라이언트
 │   ├── search/              # 웹 검색 (미사용)
 │   └── utils/               # 유틸리티
-├── tests/                   # Pytest 테스트 (25개)
+├── docs/                    # 문서
+│   └── N8N_WORKFLOW_SETUP.md
+├── n8n-workflows/           # N8N 워크플로우
+│   ├── ci-llm-analyzer.json
+│   └── README.md
+├── tests/                   # Pytest 테스트
 ├── k8s/                     # Kubernetes 배포
 ├── data/seed_kb.json        # 초기 KB 데이터
 ├── start_server.py          # 서버 실행
-├── test_all_features.py     # 통합 테스트
-├── ci_error_agent.py        # 클래스 인터페이스
-├── ci_system_example.py     # CI 연동 예시
 ├── requirements.txt         # 패키지 목록
 ├── Dockerfile               # Docker 이미지
 └── .gitignore               # Git 설정
