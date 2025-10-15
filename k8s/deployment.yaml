@@ -40,13 +40,42 @@ spec:
               key: password
         # LLM 설정
         - name: LLM_PROVIDER
-          value: "private"  # openai 또는 private
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: llm-provider
         - name: OPENAI_API_KEY
           valueFrom:
             secretKeyRef:
               name: app-secrets
               key: openai-api-key
               optional: true
+        # Azure OpenAI 설정
+        - name: AZURE_OPENAI_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: azure-openai-endpoint
+              optional: true
+        - name: AZURE_OPENAI_DEPLOYMENT_NAME
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: azure-openai-deployment-name
+              optional: true
+        - name: AZURE_OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: azure-openai-api-key
+              optional: true
+        - name: AZURE_OPENAI_API_VERSION
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: azure-openai-api-version
+              optional: true
+        # Private LLM 설정
         - name: PRIVATE_LLM_BASE_URL
           valueFrom:
             configMapKeyRef:
@@ -88,7 +117,7 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: app-config
-              key: n8n-timeout
+              key: n8n-timeout-seconds
               optional: true
         volumeMounts:
         - name: kb-storage

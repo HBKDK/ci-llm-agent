@@ -28,7 +28,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.PRIVATE_LLM_URL }}",
+        "url": "={{ $env.AZURE_OPENAI_ENDPOINT }}/openai/deployments/{{ $env.AZURE_OPENAI_DEPLOYMENT_NAME }}/chat/completions?api-version={{ $env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
@@ -37,18 +37,22 @@
             {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "api-key",
+              "value": "={{ $env.AZURE_OPENAI_API_KEY }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"{{ $env.PRIVATE_LLM_MODEL || 'llama-3-70b' }}\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"당신은 자동차 소프트웨어 CI/CD 오류 분석 전문가입니다. Tasking, NXP, Polyspace, Simulink, AUTOSAR, CAN 등의 도구에서 발생하는 오류를 분석하고 해결책을 제시하세요. 한국어로 답변하세요.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"CI 로그:\\n{{ $json.ci_log }}\\n\\n증상:\\n{{ $json.symptoms.join('\\\\n') }}\\n\\n오류 타입: {{ $json.error_type }}\\n\\n컨텍스트: {{ $json.context }}\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"max_tokens\": 1000\n}",
+        "jsonBody": "={\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"당신은 자동차 소프트웨어 CI/CD 오류 분석 전문가입니다. Tasking, NXP, Polyspace, Simulink, AUTOSAR, CAN 등의 도구에서 발생하는 오류를 분석하고 해결책을 제시하세요. 한국어로 답변하세요.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"CI 로그:\\n{{ $json.ci_log }}\\n\\n증상:\\n{{ $json.symptoms.join('\\\\n') }}\\n\\n오류 타입: {{ $json.error_type }}\\n\\n컨텍스트: {{ $json.context }}\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"max_tokens\": 1000\n}",
         "options": {
           "timeout": 25000
         }
       },
       "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-      "name": "Private LLM 호출",
+      "name": "Azure OpenAI 호출",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [680, 300]
@@ -91,14 +95,14 @@
       "main": [
         [
           {
-            "node": "Private LLM 호출",
+            "node": "Azure OpenAI 호출",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Private LLM 호출": {
+    "Azure OpenAI 호출": {
       "main": [
         [
           {

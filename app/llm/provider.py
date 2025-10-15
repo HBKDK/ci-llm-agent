@@ -35,6 +35,36 @@ class OpenAIClient:
 
 
 @dataclass
+class AzureOpenAIClient:
+    """Azure OpenAI 클라이언트"""
+    endpoint: str = ""
+    deployment_name: str = ""
+    api_key: str = ""
+    api_version: str = "2024-02-15-preview"
+
+    @retry(wait=wait_exponential(multiplier=1, min=1, max=20), stop=stop_after_attempt(3))
+    async def achain(self, prompt: str) -> str:
+        from openai import AsyncOpenAI
+
+        # Azure OpenAI 클라이언트 설정
+        client = AsyncOpenAI(
+            api_key=self.api_key,
+            azure_endpoint=self.endpoint,
+            api_version=self.api_version
+        )
+        
+        resp = await client.chat.completions.create(
+            model=self.deployment_name,
+            messages=[
+                {"role": "system", "content": "당신은 자동차 SW 개발 환경의 DevOps 전문가입니다."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.2,
+        )
+        return resp.choices[0].message.content or ""
+
+
+@dataclass
 class PrivateLLMClient:
     """Private LLM (사내 LLM 서버) 클라이언트"""
     base_url: str = ""
@@ -81,10 +111,16 @@ def get_llm() -> LLMClient:
     LLM 클라이언트 생성 (환경변수 기반)
     
     환경변수:
-        LLM_PROVIDER: openai (기본값) 또는 private
+        LLM_PROVIDER: openai (기본값), azure, 또는 private
         
         OpenAI 사용 시:
             OPENAI_API_KEY: OpenAI API 키
+        
+        Azure OpenAI 사용 시:
+            AZURE_OPENAI_ENDPOINT: Azure OpenAI 엔드포인트 URL
+            AZURE_OPENAI_DEPLOYMENT_NAME: 배포된 모델 이름
+            AZURE_OPENAI_API_KEY: Azure OpenAI API 키
+            AZURE_OPENAI_API_VERSION: API 버전 (기본값: 2024-02-15-preview)
         
         Private LLM 사용 시:
             PRIVATE_LLM_BASE_URL: Private LLM 서버 URL (예: http://llm-server:8000/v1)
@@ -93,7 +129,30 @@ def get_llm() -> LLMClient:
     """
     llm_provider = os.getenv("LLM_PROVIDER", "openai").lower()
     
-    if llm_provider == "private":
+    if llm_provider == "azure":
+        # Azure OpenAI 사용
+        endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
+        api_key = os.getenv("AZURE_OPENAI_API_KEY")
+        api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
+        
+        if not endpoint or not deployment_name or not api_key:
+            print("⚠️ Azure OpenAI 설정이 불완전합니다. 로컬 분석으로 대체합니다.")
+            print(f"   필요한 환경변수: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_DEPLOYMENT_NAME, AZURE_OPENAI_API_KEY")
+            # Fallback을 반환하는 간단한 클래스
+            class LocalClient:
+                async def achain(self, prompt: str) -> str:
+                    return _local_fallback(prompt)
+            return LocalClient()
+        
+        return AzureOpenAIClient(
+            endpoint=endpoint,
+            deployment_name=deployment_name,
+            api_key=api_key,
+            api_version=api_version
+        )
+    
+    elif llm_provider == "private":
         # Private LLM 사용
         base_url = os.getenv("PRIVATE_LLM_BASE_URL")
         model = os.getenv("PRIVATE_LLM_MODEL", "llama-3-70b")

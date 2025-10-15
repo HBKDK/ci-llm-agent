@@ -2,14 +2,14 @@
 
 ## 개요
 
-K8s CI Agent에서 n8n을 통해 Private LLM 분석을 수행하는 워크플로우 설정 방법입니다.
+K8s CI Agent에서 n8n을 통해 Azure OpenAI 분석을 수행하는 워크플로우 설정 방법입니다.
 
 ## 아키텍처
 
 ```
 CI (Bamboo) → K8s App → KB Search
                   ↓ (if KB miss)
-                n8n Webhook → Private LLM
+                n8n Webhook → Azure OpenAI
                   ↓
             K8s App ← LLM Result
                   ↓
@@ -47,22 +47,21 @@ return {
 };
 ```
 
-### 3. Private LLM 호출 노드
+### 3. Azure OpenAI 호출 노드
 
-**HTTP Request** 노드를 추가하여 Private LLM 호출:
+**HTTP Request** 노드를 추가하여 Azure OpenAI 호출:
 
 #### 설정:
 - **Method**: POST
-- **URL**: `{{ $env.PRIVATE_LLM_URL }}`
+- **URL**: `{{ $env.AZURE_OPENAI_ENDPOINT }}/openai/deployments/{{ $env.AZURE_OPENAI_DEPLOYMENT_NAME }}/chat/completions?api-version={{ $env.AZURE_OPENAI_API_VERSION }}`
 - **Headers**:
   ```
   Content-Type: application/json
-  Authorization: Bearer {{ $env.PRIVATE_LLM_API_KEY }}
+  api-key: {{ $env.AZURE_OPENAI_API_KEY }}
   ```
 - **Body** (JSON):
 ```json
 {
-  "model": "{{ $env.PRIVATE_LLM_MODEL }}",
   "messages": [
     {
       "role": "system",
@@ -117,9 +116,10 @@ n8n 워크플로우에서 사용할 환경변수:
 
 ```bash
 # .env 파일 또는 n8n 환경변수 설정
-PRIVATE_LLM_URL=http://your-llm-server:8000/v1/chat/completions
-PRIVATE_LLM_API_KEY=your-api-key
-PRIVATE_LLM_MODEL=llama-3-70b
+AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com
+AZURE_OPENAI_DEPLOYMENT_NAME=your-deployment-name
+AZURE_OPENAI_API_KEY=your-azure-openai-api-key
+AZURE_OPENAI_API_VERSION=2024-02-15-preview
 ```
 
 ## API 계약
@@ -218,18 +218,24 @@ kubectl logs -f deployment/ci-error-agent
 ### 자주 발생하는 문제
 
 1. **연결 실패**
-   - Private LLM 서버 상태 확인
+   - Azure OpenAI 서비스 상태 확인
    - 네트워크 연결 확인
    - API 키 유효성 확인
+   - 엔드포인트 URL 정확성 확인
 
 2. **타임아웃**
-   - LLM 서버 성능 확인
+   - Azure OpenAI 서비스 성능 확인
    - 요청 복잡도 줄이기
    - 타임아웃 시간 조정
 
 3. **응답 형식 오류**
-   - LLM 응답 JSON 형식 확인
+   - Azure OpenAI 응답 JSON 형식 확인
    - n8n Function 노드 로직 점검
+
+4. **인증 오류**
+   - Azure OpenAI API 키 확인
+   - 배포 이름 정확성 확인
+   - API 버전 호환성 확인
 
 ### 로그 확인 명령어
 
@@ -240,6 +246,7 @@ docker logs n8n-container
 # K8s App 로그
 kubectl logs deployment/ci-error-agent
 
-# Private LLM 로그
-docker logs llm-server-container
+# Azure OpenAI 로그 (Azure Portal에서 확인)
+# 또는 Azure CLI로 확인
+az monitor activity-log list --resource-group your-resource-group
 ```
