@@ -25,13 +25,13 @@ pip install -r requirements.txt
 set AZURE_OPENAI_API_KEY=your-azure-openai-api-key-here
 set AZURE_OPENAI_BASE_URL=https://your-resource-name.openai.azure.com
 set AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4.1-mini
-set AZURE_OPENAI_API_VERSION=2024-02-15-preview
+# set AZURE_OPENAI_API_VERSION=2024-02-15-preview  # 선택사항
 
 # Linux/Mac
 export AZURE_OPENAI_API_KEY=your-azure-openai-api-key-here
 export AZURE_OPENAI_BASE_URL=https://your-resource-name.openai.azure.com
 export AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4.1-mini
-export AZURE_OPENAI_API_VERSION=2024-02-15-preview
+# export AZURE_OPENAI_API_VERSION=2024-02-15-preview  # 선택사항
 ```
 
 **방법 2: 설정 파일**
@@ -41,7 +41,7 @@ azure_openai:
   api_key: "your-azure-openai-api-key-here"
   base_url: "https://your-resource-name.openai.azure.com"
   deployment_name: "gpt-4.1-mini"
-  api_version: "2024-02-15-preview"
+  # api_version: "2024-02-15-preview"  # 선택사항
 ```
 
 ### 3. 서버 실행

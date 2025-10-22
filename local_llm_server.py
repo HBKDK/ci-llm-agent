@@ -61,10 +61,20 @@ config = load_config()
 # Azure OpenAI 클라이언트 초기화
 openai_client = None
 if config["azure_openai"]["api_key"] and config["azure_openai"]["base_url"]:
+    # Azure OpenAI의 경우 base_url에 api_version을 포함
+    base_url = config["azure_openai"]["base_url"]
+    if not base_url.endswith('/'):
+        base_url += '/'
+    
+    # api_version을 쿼리 파라미터로 추가 (선택사항)
+    api_version = config["azure_openai"].get("api_version")
+    if api_version and "api-version" not in base_url:
+        separator = '&' if '?' in base_url else '?'
+        base_url = f"{base_url}{separator}api-version={api_version}"
+    
     openai_client = AsyncOpenAI(
         api_key=config["azure_openai"]["api_key"],
-        base_url=config["azure_openai"]["base_url"],
-        api_version=config["azure_openai"]["api_version"]
+        base_url=base_url
     )
 else:
     logger.warning("AZURE_OPENAI_API_KEY 또는 AZURE_OPENAI_BASE_URL이 설정되지 않았습니다. 환경변수를 설정하거나 config 파일을 확인하세요.")
