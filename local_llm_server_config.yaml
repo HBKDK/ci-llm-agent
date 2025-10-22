@@ -1,18 +1,24 @@
 # Local LLM Server 설정 파일
 
-# OpenAI 설정
-openai:
-  # API 키 (환경변수 OPENAI_API_KEY로도 설정 가능)
-  # api_key: "your-openai-api-key-here"
+# Azure OpenAI 설정
+azure_openai:
+  # API 키 (환경변수 AZURE_OPENAI_API_KEY로도 설정 가능)
+  # api_key: "your-azure-openai-api-key-here"
   
-  # 사용할 모델 (gpt-4, gpt-3.5-turbo, gpt-4-turbo 등)
-  model: "gpt-3.5-turbo"
+  # Base URL (환경변수 AZURE_OPENAI_BASE_URL로도 설정 가능)
+  # base_url: "https://your-resource-name.openai.azure.com"
+  
+  # 배포 이름 (환경변수 AZURE_OPENAI_DEPLOYMENT_NAME로도 설정 가능)
+  deployment_name: "gpt-4.1-mini"
+  
+  # API 버전 (환경변수 AZURE_OPENAI_API_VERSION로도 설정 가능)
+  api_version: "2024-02-15-preview"
   
   # 생성 온도 (0.0 ~ 1.0, 낮을수록 일관성 높음)
   temperature: 0.2
   
   # 최대 토큰 수
-  max_tokens: 1000
+  max_tokens: 4096
 
 # 서버 설정
 server:

@@ -26,11 +26,13 @@ def load_config():
     """설정 파일에서 설정을 로드합니다."""
     config_file = "local_llm_server_config.yaml"
     default_config = {
-        "openai": {
-            "api_key": os.getenv("OPENAI_API_KEY", ""),
-            "model": "gpt-3.5-turbo",
+        "azure_openai": {
+            "api_key": os.getenv("AZURE_OPENAI_API_KEY", ""),
+            "base_url": os.getenv("AZURE_OPENAI_BASE_URL", ""),
+            "deployment_name": os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4.1-mini"),
+            "api_version": os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview"),
             "temperature": 0.2,
-            "max_tokens": 1000
+            "max_tokens": 4096
         },
         "server": {
             "port": 5678,
@@ -56,12 +58,16 @@ def load_config():
 
 config = load_config()
 
-# OpenAI 클라이언트 초기화
+# Azure OpenAI 클라이언트 초기화
 openai_client = None
-if config["openai"]["api_key"]:
-    openai_client = AsyncOpenAI(api_key=config["openai"]["api_key"])
+if config["azure_openai"]["api_key"] and config["azure_openai"]["base_url"]:
+    openai_client = AsyncOpenAI(
+        api_key=config["azure_openai"]["api_key"],
+        base_url=config["azure_openai"]["base_url"],
+        api_version=config["azure_openai"]["api_version"]
+    )
 else:
-    logger.warning("OPENAI_API_KEY가 설정되지 않았습니다. 환경변수를 설정하거나 config 파일을 확인하세요.")
+    logger.warning("AZURE_OPENAI_API_KEY 또는 AZURE_OPENAI_BASE_URL이 설정되지 않았습니다. 환경변수를 설정하거나 config 파일을 확인하세요.")
 
 # FastAPI 앱 생성
 app = FastAPI(
@@ -98,11 +104,11 @@ def calculate_confidence(analysis: str) -> float:
         return 0.5
 
 async def analyze_with_openai(request: AnalyzeRequest) -> Dict[str, Any]:
-    """OpenAI API를 사용하여 CI 로그 분석"""
+    """Azure OpenAI API를 사용하여 CI 로그 분석"""
     if not openai_client:
         raise HTTPException(
             status_code=503,
-            detail="OpenAI API 키가 설정되지 않음"
+            detail="Azure OpenAI API 키 또는 Base URL이 설정되지 않음"
         )
     
     # 프롬프트 구성
@@ -145,13 +151,13 @@ async def analyze_with_openai(request: AnalyzeRequest) -> Dict[str, Any]:
 
     try:
         response = await openai_client.chat.completions.create(
-            model=config["openai"]["model"],
+            model=config["azure_openai"]["deployment_name"],
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=config["openai"]["temperature"],
-            max_tokens=config["openai"]["max_tokens"]
+            temperature=config["azure_openai"]["temperature"],
+            max_tokens=config["azure_openai"]["max_tokens"]
         )
         
         analysis = response.choices[0].message.content
@@ -163,7 +169,7 @@ async def analyze_with_openai(request: AnalyzeRequest) -> Dict[str, Any]:
         }
         
     except Exception as e:
-        logger.error(f"OpenAI API 호출 실패: {e}")
+        logger.error(f"Azure OpenAI API 호출 실패: {e}")
         raise HTTPException(
             status_code=503,
             detail=f"LLM 분석 실패: {str(e)}"
@@ -223,11 +229,11 @@ if __name__ == "__main__":
     host = config["server"]["host"]
     
     logger.info(f"로컬 LLM 서버 시작: http://{host}:{port}")
-    logger.info(f"OpenAI 모델: {config['openai']['model']}")
+    logger.info(f"Azure OpenAI 모델: {config['azure_openai']['deployment_name']}")
     
     if not openai_client:
-        logger.warning("⚠️ OpenAI API 키가 설정되지 않았습니다!")
-        logger.warning("환경변수 OPENAI_API_KEY를 설정하거나 local_llm_server_config.yaml 파일을 확인하세요.")
+        logger.warning("⚠️ Azure OpenAI API 키 또는 Base URL이 설정되지 않았습니다!")
+        logger.warning("환경변수 AZURE_OPENAI_API_KEY, AZURE_OPENAI_BASE_URL을 설정하거나 local_llm_server_config.yaml 파일을 확인하세요.")
     
     uvicorn.run(
         "local_llm_server:app",

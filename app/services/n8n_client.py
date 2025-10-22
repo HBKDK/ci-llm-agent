@@ -13,11 +13,11 @@ class N8NClient:
     """n8n webhook 클라이언트"""
     
     def __init__(self):
-        self.webhook_url = os.getenv("N8N_WEBHOOK_URL")
-        self.timeout = int(os.getenv("N8N_TIMEOUT_SECONDS", "30"))
+        self.webhook_url = os.getenv("LLM_WEBHOOK_URL") or os.getenv("N8N_WEBHOOK_URL")
+        self.timeout = int(os.getenv("LLM_TIMEOUT_SECONDS", os.getenv("N8N_TIMEOUT_SECONDS", "30")))
         
         if not self.webhook_url:
-            print("⚠️ N8N_WEBHOOK_URL이 설정되지 않음. n8n LLM 분석 비활성화")
+            print("⚠️ LLM_WEBHOOK_URL이 설정되지 않음. LLM 분석 비활성화")
     
     async def call_llm_analysis(
         self,
@@ -28,7 +28,7 @@ class N8NClient:
         repository: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        n8n webhook을 호출하여 LLM 분석 수행
+        LLM webhook을 호출하여 분석 수행
         
         Args:
             ci_log: CI 로그 텍스트
@@ -41,12 +41,12 @@ class N8NClient:
             Dict with 'analysis' and 'confidence' keys
             
         Raises:
-            HTTPException: n8n 호출 실패시 503 에러
+            HTTPException: LLM 호출 실패시 503 에러
         """
         if not self.webhook_url:
             raise HTTPException(
                 status_code=503,
-                detail="n8n webhook URL이 설정되지 않음"
+                detail="LLM webhook URL이 설정되지 않음"
             )
         
         # 요청 데이터 구성
@@ -60,7 +60,7 @@ class N8NClient:
         
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                print(f"🔄 n8n webhook 호출: {self.webhook_url}")
+                print(f"🔄 LLM webhook 호출: {self.webhook_url}")
                 
                 response = await client.post(
                     self.webhook_url,
@@ -72,7 +72,7 @@ class N8NClient:
                 if response.status_code != 200:
                     raise HTTPException(
                         status_code=503,
-                        detail=f"n8n webhook 에러: HTTP {response.status_code}"
+                        detail=f"LLM webhook 에러: HTTP {response.status_code}"
                     )
                 
                 # 응답 데이터 파싱
@@ -82,26 +82,26 @@ class N8NClient:
                 if "analysis" not in result or "confidence" not in result:
                     raise HTTPException(
                         status_code=503,
-                        detail="n8n 응답 형식이 올바르지 않음: analysis, confidence 필드 필요"
+                        detail="LLM 응답 형식이 올바르지 않음: analysis, confidence 필드 필요"
                     )
                 
-                print(f"✅ n8n LLM 분석 완료: 신뢰도 {result['confidence']}")
+                print(f"✅ LLM 분석 완료: 신뢰도 {result['confidence']}")
                 return result
                 
         except httpx.TimeoutException:
             raise HTTPException(
                 status_code=503,
-                detail=f"n8n webhook 타임아웃 ({self.timeout}초)"
+                detail=f"LLM webhook 타임아웃 ({self.timeout}초)"
             )
         except httpx.ConnectError:
             raise HTTPException(
                 status_code=503,
-                detail="n8n 서버 연결 실패"
+                detail="LLM 서버 연결 실패"
             )
         except Exception as e:
             raise HTTPException(
                 status_code=503,
-                detail=f"n8n webhook 호출 실패: {str(e)}"
+                detail=f"LLM webhook 호출 실패: {str(e)}"
             )
 
 
