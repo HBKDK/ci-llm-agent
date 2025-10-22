@@ -115,26 +115,70 @@ http://<node-ip>:30800/docs
 
 ## 🔧 로컬 LLM 서버 설정
 
-### 1. 로컬 LLM 서버 실행
-```bash
-# OpenAI API 키 설정
-set OPENAI_API_KEY=your-openai-api-key-here
+### 1. Azure OpenAI 설정
 
-# 로컬 서버 실행
+#### 자동 설정 (권장)
+```bash
+# 설정 스크립트 실행
+./setup_azure_openai.sh
+
+# 환경변수 로드
+source .env.azure_openai
+
+# API 연결 테스트
+python test_azure_openai.py
+```
+
+#### 수동 설정
+```bash
+# 환경변수 설정
+export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com"
+export AZURE_OPENAI_DEPLOYMENT_NAME="gpt-4o-mini"
+export AZURE_OPENAI_API_KEY="your-api-key-here"
+export AZURE_OPENAI_API_VERSION="2024-02-15-preview"
+export LLM_PROVIDER="azure"
+
+# API 연결 테스트
+python test_azure_openai.py
+```
+
+### 2. 로컬 LLM 서버 실행
+```bash
+# 서버 실행
 python local_llm_server.py
 ```
 
-### 2. K8s 설정 업데이트
+### 3. K8s 설정 업데이트
 ```yaml
 # k8s/secrets.yaml
 n8n-webhook-url: "http://YOUR_LOCAL_PC_IP:5678/webhook/llm-analyze"
 ```
 
-### 3. 테스트
+### 4. 테스트
 ```bash
 # 서버 상태 확인
 curl http://localhost:5678/
+
+# 헬스 체크
+curl http://localhost:5678/health
 ```
+
+### 5. 문제 해결
+
+#### 401 Unauthorized 오류
+```bash
+# API 키 검증
+python test_azure_openai.py
+
+# 환경변수 확인
+env | grep AZURE_OPENAI
+```
+
+#### 일반적인 해결 방법
+1. **API 키 확인**: Azure 포털에서 올바른 키인지 확인
+2. **엔드포인트 확인**: URL이 정확한지 확인 (https:// 포함)
+3. **배포 이름 확인**: 모델이 실제로 배포되어 있는지 확인
+4. **권한 확인**: API 키에 필요한 권한이 있는지 확인
 
 자세한 설정은 **`LOCAL_LLM_SERVER.md`** 참고
 
