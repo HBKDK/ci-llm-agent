@@ -60,24 +60,39 @@ config = load_config()
 
 # Azure OpenAI 클라이언트 초기화
 openai_client = None
-if config["azure_openai"]["api_key"] and config["azure_openai"]["base_url"]:
-    # Azure OpenAI의 경우 base_url에 api_version을 포함
-    base_url = config["azure_openai"]["base_url"]
-    if not base_url.endswith('/'):
-        base_url += '/'
-    
-    # api_version을 쿼리 파라미터로 추가 (선택사항)
-    api_version = config["azure_openai"].get("api_version")
-    if api_version and "api-version" not in base_url:
-        separator = '&' if '?' in base_url else '?'
-        base_url = f"{base_url}{separator}api-version={api_version}"
-    
-    openai_client = AsyncOpenAI(
-        api_key=config["azure_openai"]["api_key"],
-        base_url=base_url
-    )
+api_key = config["azure_openai"]["api_key"]
+base_url = config["azure_openai"]["base_url"]
+
+if api_key and base_url:
+    # API 키 유효성 검사
+    if not api_key.strip():
+        logger.error("Azure OpenAI API 키가 비어있습니다.")
+    elif not base_url.strip():
+        logger.error("Azure OpenAI Base URL이 비어있습니다.")
+    else:
+        # Azure OpenAI의 경우 base_url에 api_version을 포함
+        if not base_url.endswith('/'):
+            base_url += '/'
+        
+        # api_version을 쿼리 파라미터로 추가 (선택사항)
+        api_version = config["azure_openai"].get("api_version")
+        if api_version and "api-version" not in base_url:
+            separator = '&' if '?' in base_url else '?'
+            base_url = f"{base_url}{separator}api-version={api_version}"
+        
+        try:
+            openai_client = AsyncOpenAI(
+                api_key=api_key,
+                base_url=base_url
+            )
+            logger.info("Azure OpenAI 클라이언트가 성공적으로 초기화되었습니다.")
+        except Exception as e:
+            logger.error(f"Azure OpenAI 클라이언트 초기화 실패: {e}")
+            openai_client = None
 else:
-    logger.warning("AZURE_OPENAI_API_KEY 또는 AZURE_OPENAI_BASE_URL이 설정되지 않았습니다. 환경변수를 설정하거나 config 파일을 확인하세요.")
+    logger.warning("AZURE_OPENAI_API_KEY 또는 AZURE_OPENAI_BASE_URL이 설정되지 않았습니다.")
+    logger.warning("환경변수를 설정하거나 config 파일을 확인하세요.")
+    logger.warning(f"현재 설정 - API_KEY: {'설정됨' if api_key else '미설정'}, BASE_URL: {'설정됨' if base_url else '미설정'}")
 
 # FastAPI 앱 생성
 app = FastAPI(
@@ -179,11 +194,21 @@ async def analyze_with_openai(request: AnalyzeRequest) -> Dict[str, Any]:
         }
         
     except Exception as e:
-        logger.error(f"Azure OpenAI API 호출 실패: {e}")
-        raise HTTPException(
-            status_code=503,
-            detail=f"LLM 분석 실패: {str(e)}"
-        )
+        error_msg = str(e)
+        logger.error(f"Azure OpenAI API 호출 실패: {error_msg}")
+        
+        # 401 오류인 경우 더 자세한 정보 제공
+        if "401" in error_msg or "unauthorized" in error_msg.lower():
+            logger.error("인증 실패: API 키가 유효하지 않거나 만료되었습니다.")
+            raise HTTPException(
+                status_code=401,
+                detail="Azure OpenAI API 인증 실패: API 키를 확인하세요."
+            )
+        else:
+            raise HTTPException(
+                status_code=503,
+                detail=f"LLM 분석 실패: {error_msg}"
+            )
 
 @app.get("/")
 async def root():

@@ -45,23 +45,41 @@ class AzureOpenAIClient:
     @retry(wait=wait_exponential(multiplier=1, min=1, max=20), stop=stop_after_attempt(3))
     async def achain(self, prompt: str) -> str:
         from openai import AsyncOpenAI
+        import logging
 
-        # Azure OpenAI 클라이언트 설정
-        client = AsyncOpenAI(
-            api_key=self.api_key,
-            azure_endpoint=self.endpoint,
-            api_version=self.api_version
-        )
+        logger = logging.getLogger(__name__)
         
-        resp = await client.chat.completions.create(
-            model=self.deployment_name,
-            messages=[
-                {"role": "system", "content": "당신은 자동차 SW 개발 환경의 DevOps 전문가입니다."},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.2,
-        )
-        return resp.choices[0].message.content or ""
+        # API 키 유효성 검사
+        if not self.api_key or self.api_key.strip() == "":
+            logger.error("Azure OpenAI API 키가 설정되지 않았습니다.")
+            return _local_fallback(prompt)
+        
+        # 엔드포인트 유효성 검사
+        if not self.endpoint or self.endpoint.strip() == "":
+            logger.error("Azure OpenAI 엔드포인트가 설정되지 않았습니다.")
+            return _local_fallback(prompt)
+        
+        try:
+            # Azure OpenAI 클라이언트 설정
+            client = AsyncOpenAI(
+                api_key=self.api_key,
+                azure_endpoint=self.endpoint,
+                api_version=self.api_version
+            )
+            
+            resp = await client.chat.completions.create(
+                model=self.deployment_name,
+                messages=[
+                    {"role": "system", "content": "당신은 자동차 SW 개발 환경의 DevOps 전문가입니다."},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.2,
+            )
+            return resp.choices[0].message.content or ""
+            
+        except Exception as e:
+            logger.error(f"Azure OpenAI API 호출 실패: {e}")
+            return _local_fallback(prompt)
 
 
 @dataclass
@@ -139,6 +157,10 @@ def get_llm() -> LLMClient:
         if not endpoint or not deployment_name or not api_key:
             print("⚠️ Azure OpenAI 설정이 불완전합니다. 로컬 분석으로 대체합니다.")
             print(f"   필요한 환경변수: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_DEPLOYMENT_NAME, AZURE_OPENAI_API_KEY")
+            print(f"   현재 설정:")
+            print(f"   - AZURE_OPENAI_ENDPOINT: {endpoint or '미설정'}")
+            print(f"   - AZURE_OPENAI_DEPLOYMENT_NAME: {deployment_name or '미설정'}")
+            print(f"   - AZURE_OPENAI_API_KEY: {'설정됨' if api_key else '미설정'}")
             # Fallback을 반환하는 간단한 클래스
             class LocalClient:
                 async def achain(self, prompt: str) -> str:
