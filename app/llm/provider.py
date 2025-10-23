@@ -14,16 +14,16 @@ class LLMClient(Protocol):
 @dataclass
 class OpenAIClient:
     model: str = "gpt-4o-mini"
+    api_key: str = ""
 
     @retry(wait=wait_exponential(multiplier=1, min=1, max=20), stop=stop_after_attempt(3))
     async def achain(self, prompt: str) -> str:
         from openai import AsyncOpenAI
 
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
+        if not self.api_key:
             # fallback: local simple heuristic summarizer
             return _local_fallback(prompt)
-        client = AsyncOpenAI(api_key=api_key)
+        client = AsyncOpenAI(api_key=self.api_key)
         resp = await client.chat.completions.create(
             model=self.model,
             messages=[
@@ -206,6 +206,6 @@ def get_llm() -> LLMClient:
         print(f"   Model: {model}")
         print(f"   API Key: {'설정됨' if api_key else '없음'}")
         
-        return OpenAIClient(model=model)
+        return OpenAIClient(model=model, api_key=api_key)
 
 
