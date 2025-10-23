@@ -3,23 +3,33 @@
 # Azure OpenAI 설정
 azure_openai:
   # API 키 (환경변수 AZURE_OPENAI_API_KEY로도 설정 가능)
-  # api_key: "your-azure-openai-api-key-here"
+  api_key: "your-azure-openai-api-key-here"
   
-  # Base URL (환경변수 AZURE_OPENAI_BASE_URL로도 설정 가능)
-  # base_url: "https://your-resource-name.openai.azure.com"
+  # Base URL (환경변수 AZURE_OPENAI_ENDPOINT로도 설정 가능)
+  base_url: "https://your-resource-name.openai.azure.com"
   
   # 배포 이름 (환경변수 AZURE_OPENAI_DEPLOYMENT_NAME로도 설정 가능)
   deployment_name: "gpt-4.1-mini"
   
   # API 버전 (환경변수 AZURE_OPENAI_API_VERSION로도 설정 가능, 선택사항)
-  # base_url에 이미 api-version이 포함되어 있다면 생략 가능
-  # api_version: "2024-02-15-preview"
+  api_version: "2024-02-15-preview"
   
   # 생성 온도 (0.0 ~ 1.0, 낮을수록 일관성 높음)
   temperature: 0.2
   
   # 최대 토큰 수
   max_tokens: 4096
+
+# OpenAI 설정 (기본 LLM)
+openai:
+  api_key: "your-openai-api-key-here"
+  model: "gpt-4o-mini"
+
+# Private LLM 설정
+private_llm:
+  base_url: "http://your-llm-server:8000/v1"
+  model: "llama-3-70b"
+  api_key: "your-private-llm-api-key"
 
 # 서버 설정
 server:
