@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from tenacity import retry, stop_after_attempt, wait_exponential
+from app.utils.config import load_config, get_azure_config, get_private_llm_config, get_openai_config
 
 
 class LLMClient(Protocol):
@@ -108,7 +109,9 @@ def _local_fallback(prompt: str) -> str:
 
 def get_llm() -> LLMClient:
     """
-    LLM 클라이언트 생성 (환경변수 기반)
+    LLM 클라이언트 생성 (config 파일 + 환경변수 기반)
+    
+    우선순위: 환경변수 > config 파일 > 기본값
     
     환경변수:
         LLM_PROVIDER: openai (기본값), azure, 또는 private
@@ -127,18 +130,33 @@ def get_llm() -> LLMClient:
             PRIVATE_LLM_MODEL: 모델 이름 (예: llama-3-70b, mistral-7b)
             PRIVATE_LLM_API_KEY: Private LLM API 키 (없으면 빈 문자열)
     """
+    # config 파일 로드 시도
+    try:
+        config = load_config()
+        print("✅ Config 파일 로드 성공")
+    except Exception as e:
+        print(f"⚠️ Config 파일 로드 실패: {e}")
+        config = {}
+    
     llm_provider = os.getenv("LLM_PROVIDER", "openai").lower()
     
     if llm_provider == "azure":
-        # Azure OpenAI 사용
-        endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-        deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
-        api_key = os.getenv("AZURE_OPENAI_API_KEY")
-        api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
+        # Azure OpenAI 사용 - config 파일에서 값 가져오기
+        azure_config = get_azure_config(config)
+        endpoint = azure_config["endpoint"]
+        deployment_name = azure_config["deployment_name"]
+        api_key = azure_config["api_key"]
+        api_version = azure_config["api_version"]
+        
+        print(f"🔧 Azure OpenAI 설정:")
+        print(f"   Endpoint: {endpoint}")
+        print(f"   Deployment: {deployment_name}")
+        print(f"   API Key: {'설정됨' if api_key else '없음'}")
+        print(f"   API Version: {api_version}")
         
         if not endpoint or not deployment_name or not api_key:
             print("⚠️ Azure OpenAI 설정이 불완전합니다. 로컬 분석으로 대체합니다.")
-            print(f"   필요한 환경변수: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_DEPLOYMENT_NAME, AZURE_OPENAI_API_KEY")
+            print(f"   필요한 설정: endpoint, deployment_name, api_key")
             # Fallback을 반환하는 간단한 클래스
             class LocalClient:
                 async def achain(self, prompt: str) -> str:
@@ -153,10 +171,16 @@ def get_llm() -> LLMClient:
         )
     
     elif llm_provider == "private":
-        # Private LLM 사용
-        base_url = os.getenv("PRIVATE_LLM_BASE_URL")
-        model = os.getenv("PRIVATE_LLM_MODEL", "llama-3-70b")
-        api_key = os.getenv("PRIVATE_LLM_API_KEY", "not-needed")
+        # Private LLM 사용 - config 파일에서 값 가져오기
+        private_config = get_private_llm_config(config)
+        base_url = private_config["base_url"]
+        model = private_config["model"]
+        api_key = private_config["api_key"]
+        
+        print(f"🔧 Private LLM 설정:")
+        print(f"   Base URL: {base_url}")
+        print(f"   Model: {model}")
+        print(f"   API Key: {'설정됨' if api_key else '없음'}")
         
         if not base_url:
             print("⚠️ PRIVATE_LLM_BASE_URL이 설정되지 않았습니다. 로컬 분석으로 대체합니다.")
@@ -173,8 +197,15 @@ def get_llm() -> LLMClient:
         )
     
     else:
-        # OpenAI 사용 (기본값)
-        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        # OpenAI 사용 (기본값) - config 파일에서 값 가져오기
+        openai_config = get_openai_config(config)
+        model = openai_config["model"]
+        api_key = openai_config["api_key"]
+        
+        print(f"🔧 OpenAI 설정:")
+        print(f"   Model: {model}")
+        print(f"   API Key: {'설정됨' if api_key else '없음'}")
+        
         return OpenAIClient(model=model)
 
 
