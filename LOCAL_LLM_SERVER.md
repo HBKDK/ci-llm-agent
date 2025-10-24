@@ -24,14 +24,14 @@ pip install -r requirements.txt
 # Windows
 set AZURE_OPENAI_API_KEY=your-azure-openai-api-key-here
 set AZURE_OPENAI_BASE_URL=https://your-resource-name.openai.azure.com
-set AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4.1-mini
-# set AZURE_OPENAI_API_VERSION=2024-02-15-preview  # 선택사항
+set AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini
+set AZURE_OPENAI_API_VERSION=2024-10-21
 
 # Linux/Mac
 export AZURE_OPENAI_API_KEY=your-azure-openai-api-key-here
 export AZURE_OPENAI_BASE_URL=https://your-resource-name.openai.azure.com
-export AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4.1-mini
-# export AZURE_OPENAI_API_VERSION=2024-02-15-preview  # 선택사항
+export AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini
+export AZURE_OPENAI_API_VERSION=2024-10-21
 ```
 
 **방법 2: 설정 파일**
@@ -40,8 +40,8 @@ export AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4.1-mini
 azure_openai:
   api_key: "your-azure-openai-api-key-here"
   base_url: "https://your-resource-name.openai.azure.com"
-  deployment_name: "gpt-4.1-mini"
-  # api_version: "2024-02-15-preview"  # 선택사항
+  deployment_name: "gpt-4o-mini"
+  api_version: "2024-10-21"
 ```
 
 ### 3. 서버 실행
@@ -53,7 +53,7 @@ python local_llm_server.py
 서버가 시작되면 다음 메시지가 표시됩니다:
 ```
 INFO:     로컬 LLM 서버 시작: http://0.0.0.0:5678
-INFO:     Azure OpenAI 모델: gpt-4.1-mini
+INFO:     Azure OpenAI 모델: gpt-4o-mini
 ```
 
 ## ⚙️ 설정
@@ -63,7 +63,8 @@ INFO:     Azure OpenAI 모델: gpt-4.1-mini
 ```yaml
 # Azure OpenAI 설정
 azure_openai:
-  deployment_name: "gpt-4.1-mini"  # gpt-4, gpt-35-turbo 등으로 변경 가능
+  deployment_name: "gpt-4o-mini"   # gpt-4, gpt-35-turbo 등으로 변경 가능
+  api_version: "2024-10-21"        # 필수
   temperature: 0.2                 # 0.0 ~ 1.0 (낮을수록 일관성 높음)
   max_tokens: 4096                 # 최대 응답 길이
 
@@ -83,6 +84,7 @@ azure_openai:
   deployment_name: "gpt-4"  # 더 정확하지만 비용 높음
   # 또는
   deployment_name: "gpt-35-turbo"  # 빠르고 비용 효율적
+  api_version: "2024-10-21"  # 필수
 ```
 
 ## 🔧 K8s 연동 설정
@@ -168,7 +170,7 @@ curl -X POST http://localhost:5678/webhook/llm-analyze \
 
 ```bash
 curl --request POST \
-  --url https://your-resource-name.openai.azure.com/openai/deployments/gpt-4.1-mini/chat/completions?api-version=2024-02-15-preview \
+  --url https://your-resource-name.openai.azure.com/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-10-21 \
   --header 'Content-Type: application/json' \
   --header 'api-key: your-azure-openai-api-key' \
   --data '{

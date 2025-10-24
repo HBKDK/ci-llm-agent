@@ -1,7 +1,7 @@
 """
-n8n Integration Client
+LLM Integration Client
 
-K8s App에서 n8n webhook을 호출하여 Private LLM 분석을 수행하는 클라이언트
+K8s App에서 로컬 LLM 서버를 호출하여 LLM 분석을 수행하는 클라이언트
 """
 import os
 import httpx
@@ -9,8 +9,8 @@ from typing import Dict, Any, Optional
 from fastapi import HTTPException
 
 
-class N8NClient:
-    """n8n webhook 클라이언트"""
+class LLMClient:
+    """LLM webhook 클라이언트"""
     
     def __init__(self):
         self.webhook_url = os.getenv("LLM_WEBHOOK_URL") or os.getenv("N8N_WEBHOOK_URL")
@@ -106,4 +106,4 @@ class N8NClient:
 
 
 # 전역 인스턴스
-n8n_client = N8NClient()
+llm_client = LLMClient()

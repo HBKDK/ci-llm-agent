@@ -13,8 +13,7 @@ from typing import Dict, Any, Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-import openai
-from openai import AsyncOpenAI
+from openai import AzureOpenAI
 import logging
 
 # 로깅 설정
@@ -61,20 +60,10 @@ config = load_config()
 # Azure OpenAI 클라이언트 초기화
 openai_client = None
 if config["azure_openai"]["api_key"] and config["azure_openai"]["base_url"]:
-    # Azure OpenAI의 경우 base_url에 api_version을 포함
-    base_url = config["azure_openai"]["base_url"]
-    if not base_url.endswith('/'):
-        base_url += '/'
-    
-    # api_version을 쿼리 파라미터로 추가 (선택사항)
-    api_version = config["azure_openai"].get("api_version")
-    if api_version and "api-version" not in base_url:
-        separator = '&' if '?' in base_url else '?'
-        base_url = f"{base_url}{separator}api-version={api_version}"
-    
-    openai_client = AsyncOpenAI(
+    openai_client = AzureOpenAI(
+        azure_endpoint=config["azure_openai"]["base_url"],
         api_key=config["azure_openai"]["api_key"],
-        base_url=base_url
+        api_version=config["azure_openai"]["api_version"]
     )
 else:
     logger.warning("AZURE_OPENAI_API_KEY 또는 AZURE_OPENAI_BASE_URL이 설정되지 않았습니다. 환경변수를 설정하거나 config 파일을 확인하세요.")
@@ -113,7 +102,7 @@ def calculate_confidence(analysis: str) -> float:
     else:
         return 0.5
 
-async def analyze_with_openai(request: AnalyzeRequest) -> Dict[str, Any]:
+def analyze_with_openai(request: AnalyzeRequest) -> Dict[str, Any]:
     """Azure OpenAI API를 사용하여 CI 로그 분석"""
     if not openai_client:
         raise HTTPException(
@@ -160,7 +149,7 @@ async def analyze_with_openai(request: AnalyzeRequest) -> Dict[str, Any]:
 {f"**저장소**: {request.repository}" if request.repository else ""}"""
 
     try:
-        response = await openai_client.chat.completions.create(
+        response = openai_client.chat.completions.create(
             model=config["azure_openai"]["deployment_name"],
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -201,16 +190,16 @@ async def health_check():
     return {"status": "healthy", "openai_available": bool(openai_client)}
 
 @app.post("/webhook/llm-analyze", response_model=AnalyzeResponse)
-async def analyze_ci_error(request: AnalyzeRequest):
+def analyze_ci_error(request: AnalyzeRequest):
     """
     CI 오류 분석 엔드포인트
     
-    n8n webhook과 동일한 인터페이스를 제공합니다.
+    기존 API와 호환되는 인터페이스를 제공합니다.
     """
     logger.info(f"CI 오류 분석 요청: {request.error_type}")
     
     try:
-        result = await analyze_with_openai(request)
+        result = analyze_with_openai(request)
         logger.info(f"분석 완료: 신뢰도 {result['confidence']}")
         return result
         

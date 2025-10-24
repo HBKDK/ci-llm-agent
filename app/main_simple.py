@@ -14,7 +14,7 @@ from app.db.connection import get_db, init_db
 from app.db.models import AnalysisHistory, PendingApproval, KnowledgeBase
 from app.auth.jwt_handler import create_approval_token, verify_approval_token
 from app.graph.workflow import CIErrorAnalyzer
-from app.services.n8n_client import n8n_client
+from app.services.llm_client import llm_client
 from app.utils.text import extract_symptoms
 from app.kb.db import search_kb
 
@@ -119,9 +119,9 @@ async def analyze_ci_error(
             "error_type": error_type
         }
     else:
-        # KB에서 답을 찾지 못함 - n8n LLM 분석 호출
+        # KB에서 답을 찾지 못함 - LLM 분석 호출
         try:
-            n8n_result = await n8n_client.call_llm_analysis(
+            llm_result = await llm_client.call_llm_analysis(
                 ci_log=request.ci_log,
                 symptoms=symptoms,
                 error_type=error_type,
@@ -135,13 +135,13 @@ async def analyze_ci_error(
                 "web_hits": [],
                 "security_status": "llm_analyzed",
                 "kb_confidence": kb_confidence,
-                "analysis": n8n_result["analysis"],
-                "confidence": n8n_result["confidence"],
+                "analysis": llm_result["analysis"],
+                "confidence": llm_result["confidence"],
                 "error_type": error_type
             }
             
         except HTTPException as e:
-            # n8n 호출 실패 - fallback 분석
+            # LLM 호출 실패 - fallback 분석
             analysis = f"""KB에서 해당 오류에 대한 해결책을 찾지 못했고, LLM 분석도 실패했습니다.
 
 **추출된 증상**:

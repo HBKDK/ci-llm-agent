@@ -11,7 +11,7 @@ Bamboo CI에서 발생하는 자동차 SW 빌드 오류를 자동으로 분석�
 - 🚗 **자동차 SW 특화** - Tasking, NXP, Polyspace, Simulink, AUTOSAR, CAN
 - 📚 **Knowledge Base** - 학습 및 검색 시스템
 - 🔒 **보안 우선** - 내부 데이터만 사용
-- 🔧 **LLM 지원** - OpenAI, Azure OpenAI, Private LLM 지원
+- 🔧 **로컬 LLM 서버** - 별도 서버를 통한 LLM 분석
 - ✅ **수정 후 승인** - 관리자가 답변 수정 후 KB 저장
 
 ## ⚡ 빠른 시작
@@ -53,7 +53,7 @@ POST /analyze (REST API)
 │     ↓                       │
 │  3. 로컬 LLM 서버 호출      │
 │     ↓                       │
-│  4. OpenAI API 분석          │
+│  4. 로컬 LLM 서버 분석        │
 └─────────────────────────────┘
     ↓
 Response (분석 + 승인 토큰)
@@ -117,8 +117,9 @@ http://<node-ip>:30800/docs
 
 ### 1. 로컬 LLM 서버 실행
 ```bash
-# OpenAI API 키 설정
-set OPENAI_API_KEY=your-openai-api-key-here
+# Azure OpenAI API 키 설정
+set AZURE_OPENAI_API_KEY=your-azure-openai-api-key-here
+set AZURE_OPENAI_BASE_URL=https://your-resource-name.openai.azure.com
 
 # 로컬 서버 실행
 python local_llm_server.py
@@ -161,10 +162,10 @@ python -m pytest tests/test_workflow.py -v
 ## 🛠️ 기술 스택
 
 - **Backend**: FastAPI, Uvicorn
-- **AI**: LangGraph, LangChain, OpenAI API
+- **AI**: LangGraph, LangChain, 로컬 LLM 서버
 - **DB**: SQLAlchemy, SQLite/PostgreSQL
 - **Auth**: JWT (PyJWT)
-- **Workflow**: 로컬 Python 서버 (OpenAI API 연동)
+- **Workflow**: 로컬 Python 서버 (Azure OpenAI API 연동)
 - **Container**: Docker, Kubernetes
 - **Test**: Pytest
 
@@ -187,7 +188,7 @@ ci_agent/
 │   ├── auth/                # JWT 인증
 │   ├── graph/               # LangGraph 워크플로우
 │   ├── kb/                  # Knowledge Base
-│   ├── services/            # LLM 클라이언트 (n8n 호환)
+│   ├── services/            # LLM 클라이언트
 │   ├── search/              # 웹 검색 (미사용)
 │   └── utils/               # 유틸리티
 ├── docs/                    # 문서

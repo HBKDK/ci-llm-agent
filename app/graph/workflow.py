@@ -1,7 +1,7 @@
 """
 LangGraph 기반 CI 오류 분석 워크플로우 (KB 전용)
 
-n8n LLM 통합으로 인해 LLM 노드 제거, KB 검색과 증상 추출만 수행
+KB 검색과 증상 추출만 수행
 """
 import os
 from typing import Dict, List, TypedDict, Any
@@ -308,7 +308,7 @@ class CIErrorAnalyzer:
 """
     
     def _fallback_analysis(self, state: CIWorkflowState) -> str:
-        """LLM 없을 때 대체 분석"""
+        """대체 분석"""
         symptoms = state["symptoms"]
         error_type = state["error_type"]
         
@@ -341,7 +341,7 @@ docker build --no-cache .
 - npm cache clean
 - Docker system prune
 
-**참고**: 더 정확한 분석을 위해 LLM 설정을 확인하세요.
+**참고**: 더 정확한 분석을 위해 로컬 LLM 서버를 확인하세요.
 """
     
     def _calculate_confidence(self, state: CIWorkflowState) -> float:

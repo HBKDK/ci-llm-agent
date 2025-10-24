@@ -47,6 +47,7 @@ import_error.txt
 api_error*.txt
 n8n_test_results.json
 modify_page_url.txt
+server.log
 
 # 데이터베이스
 *.db
