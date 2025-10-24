@@ -205,20 +205,29 @@ async def analyze_ci_error(
         db.flush()
         
         # JWT 토큰 생성
-        approval_token = create_approval_token(
-            analysis_id=analysis_history.id,
-            pending_approval_id=pending.id,
-            admin_email="admin"
-        )
-        
-        modify_token = create_approval_token(
-            analysis_id=analysis_history.id,
-            pending_approval_id=pending.id,
-            admin_email="admin"
-        )
-        
-        pending.token = approval_token
-        db.commit()
+        try:
+            approval_token = create_approval_token(
+                analysis_id=analysis_history.id,
+                pending_approval_id=pending.id,
+                admin_email="admin"
+            )
+            
+            modify_token = create_approval_token(
+                analysis_id=analysis_history.id,
+                pending_approval_id=pending.id,
+                admin_email="admin"
+            )
+            
+            pending.token = approval_token
+            db.commit()
+            
+        except Exception as e:
+            print(f"⚠️ JWT 토큰 생성 실패: {e}")
+            # 토큰 생성 실패 시 기본값 설정
+            approval_token = None
+            modify_token = None
+            pending.token = ""
+            db.commit()
         
         # URL 생성 (CI 시스템이 이메일에 포함)
         base_url = os.getenv("BASE_URL", "http://localhost:8000")
@@ -253,11 +262,26 @@ async def approve_kb_save(
     KB에 저장하고 확인 페이지 표시
     """
     # 토큰 검증
-    payload = verify_approval_token(token)
-    
-    if payload is None or "error" in payload:
+    try:
+        payload = verify_approval_token(token)
+        
+        if payload is None:
+            return HTMLResponse(
+                content="<h2>❌ 유효하지 않은 토큰입니다.</h2>",
+                status_code=400
+            )
+        
+        if "error" in payload:
+            error_msg = payload.get('error', '유효하지 않은 토큰')
+            return HTMLResponse(
+                content=f"<h2>❌ {error_msg}</h2>",
+                status_code=400
+            )
+            
+    except Exception as e:
+        print(f"⚠️ 토큰 검증 중 오류: {e}")
         return HTMLResponse(
-            content=f"<h2>❌ {payload.get('error', '유효하지 않은 토큰')}</h2>",
+            content="<h2>❌ 토큰 검증 중 오류가 발생했습니다.</h2>",
             status_code=400
         )
     
@@ -358,12 +382,29 @@ async def modify_before_approve(
     """
     수정 페이지 표시 (이메일에서 수정 링크 클릭 시)
     """
-    payload = verify_approval_token(token)
-    
-    if payload is None or "error" in payload:
+    try:
+        payload = verify_approval_token(token)
+        
+        if payload is None:
+            from fastapi.responses import HTMLResponse
+            return HTMLResponse(
+                content="<h2>❌ 유효하지 않은 토큰입니다.</h2>",
+                status_code=400
+            )
+        
+        if "error" in payload:
+            error_msg = payload.get('error', '유효하지 않은 토큰')
+            from fastapi.responses import HTMLResponse
+            return HTMLResponse(
+                content=f"<h2>❌ {error_msg}</h2>",
+                status_code=400
+            )
+            
+    except Exception as e:
+        print(f"⚠️ 토큰 검증 중 오류: {e}")
         from fastapi.responses import HTMLResponse
         return HTMLResponse(
-            content=f"<h2>❌ {payload.get('error', '유효하지 않은 토큰')}</h2>",
+            content="<h2>❌ 토큰 검증 중 오류가 발생했습니다.</h2>",
             status_code=400
         )
     
@@ -458,10 +499,21 @@ async def save_modification(
     db: Session = Depends(get_db)
 ):
     """수정 내용 저장 (내부 API)"""
-    payload = verify_approval_token(token)
-    
-    if payload is None or "error" in payload:
-        raise HTTPException(status_code=400, detail="유효하지 않은 토큰")
+    try:
+        payload = verify_approval_token(token)
+        
+        if payload is None:
+            raise HTTPException(status_code=400, detail="유효하지 않은 토큰")
+        
+        if "error" in payload:
+            error_msg = payload.get('error', '유효하지 않은 토큰')
+            raise HTTPException(status_code=400, detail=error_msg)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️ 토큰 검증 중 오류: {e}")
+        raise HTTPException(status_code=400, detail="토큰 검증 중 오류가 발생했습니다.")
     
     pending = db.query(PendingApproval).filter(
         PendingApproval.id == payload["pending_approval_id"]
